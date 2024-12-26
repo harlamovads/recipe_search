@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center">Top 10 Most Active Users</h2>
+    <table class="table table-striped">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col">Rank</th>
+                <th scope="col">Username</th>
+                <th scope="col">Total Interactions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rank, user in enumerate(users, start=1) %}
+            <tr>
+                <th scope="row">{{ rank }}</th>
+                <td>{{ user.username }}</td>
+                <td>{{ user.total_interactions }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

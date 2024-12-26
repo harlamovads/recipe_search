@@ -2,21 +2,23 @@
 {% block content %}
 <div class="container mt-4">
     <h1>Profile</h1>
-    <p><strong>Username:</strong> {{ user.username }}</p>
     <form method="post" action="{{ url_for('profile') }}">
         <div class="mb-3">
             <label for="new_username" class="form-label">New Username</label>
-            <input type="text" class="form-control" id="new_username" name="new_username">
+            <input type="text" class="form-control" id="new_username" name="new_username" placeholder="{{ user.username }}">
         </div>
         <div class="mb-3">
             <label for="new_password" class="form-label">New Password</label>
-            <input type="password" class="form-control" id="new_password" name="new_password">
+            <input type="password" class="form-control" id="new_password" name="new_password" placeholder="Leave blank to keep current password">
         </div>
-        <button type="submit" class="btn btn-primary">Update Profile</button>
+        <button type="submit" name="update" class="btn btn-primary">Update Profile</button>
+        <button type="submit" name="delete" class="btn btn-danger">Delete Account</button>
+        <a href="{{ url_for('logout') }}" class="btn btn-secondary">Log Out</a>
     </form>
+    <hr>
     <h2>Bookmarked Recipes</h2>
     <ul class="list-group">
-        {% for recipe in user.bookmarks %}
+        {% for recipe in bookmarked_recipes %}
         <li class="list-group-item">
             <a href="{{ url_for('recipe', recipe_id=recipe.id) }}">{{ recipe.name }}</a>
         </li>
@@ -24,14 +26,11 @@
     </ul>
     <h2>Liked Recipes</h2>
     <ul class="list-group">
-        {% for recipe in user.likes %}
+        {% for recipe in liked_recipes %}
         <li class="list-group-item">
             <a href="{{ url_for('recipe', recipe_id=recipe.id) }}">{{ recipe.name }}</a>
         </li>
         {% endfor %}
     </ul>
-    <form method="post" action="{{ url_for('login') }}">
-        <button type="submit" class="btn btn-danger">Delete Account</button>
-    </form>
 </div>
 {% endblock %}

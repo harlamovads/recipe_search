@@ -4,26 +4,29 @@
     <h1>{{ recipe.name }}</h1>
     <p><strong>Type:</strong> {{ recipe.type }}</p>
     <p><strong>Kitchen:</strong> {{ recipe.kitchen }}</p>
-    <p><strong>Ingredients: {{ recipe.ingredients }}</strong></p>
-    <ul>
-        {% for ingredient in recipe.ingredients %}
-        <li>{{ ingredient }}</li>
-        {% endfor %}
-    </ul>
-    <p><strong>Steps: {{ recipe.text }}</strong></p>
-    <ol>
-        {% for step in recipe.steps %}
-        <li>{{ step }}</li>
-        {% endfor %}
-    </ol>
+    <p><strong>Ingredients:</strong> {{ recipe.ingredients }}</p>
+    <p><strong>Steps:</strong> {{ recipe.text }}</p>
+    <p><strong>Likes:</strong> {{ recipe.likes }}</p>
+    <p><strong>Dislikes:</strong> {{ recipe.dislikes }}</p>
+    <p><strong>Bookmarks:</strong> {{ recipe.bookmarks }}</p>
+
     <form method="post" action="{{ url_for('recipe', recipe_id=recipe.id) }}">
-        <button type="submit" class="btn btn-success">Like</button>
+        <button type="submit" name="action" value="like" 
+                class="btn {{ 'btn-success' if user_interaction and user_interaction.liked else 'btn-outline-success' }}">
+            {{ 'Liked' if user_interaction and user_interaction.liked else 'Like' }}
+        </button>
     </form>
     <form method="post" action="{{ url_for('recipe', recipe_id=recipe.id) }}">
-        <button type="submit" class="btn btn-danger">Dislike</button>
+        <button type="submit" name="action" value="dislike" 
+                class="btn {{ 'btn-danger' if user_interaction and user_interaction.liked == False else 'btn-outline-danger' }}">
+            {{ 'Disliked' if user_interaction and user_interaction.liked == False else 'Dislike' }}
+        </button>
     </form>
     <form method="post" action="{{ url_for('recipe', recipe_id=recipe.id) }}">
-        <button type="submit" class="btn btn-warning">Bookmark</button>
+        <button type="submit" name="action" value="bookmark" 
+                class="btn {{ 'btn-warning' if user_interaction and user_interaction.bookmarked else 'btn-outline-warning' }}">
+            {{ 'Bookmarked' if user_interaction and user_interaction.bookmarked else 'Bookmark' }}
+        </button>
     </form>
 </div>
 {% endblock %}

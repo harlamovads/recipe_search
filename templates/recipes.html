@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Recipe Database</h1>
+
+    <!-- Sorting Options -->
+    <form method="get" action="{{ url_for('recipes') }}" class="mb-4">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <select class="form-select" name="sort_by">
+                    <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name</option>
+                    <option value="type" {% if sort_by == 'type' %}selected{% endif %}>Type</option>
+                    <option value="kitchen" {% if sort_by == 'kitchen' %}selected{% endif %}>Kitchen</option>
+                    <option value="portion_num" {% if sort_by == 'portion_num' %}selected{% endif %}>Portions</option>
+                    <option value="likes" {% if sort_by == 'likes' %}selected{% endif %}>Likes</option>
+                    <option value="bookmarks" {% if sort_by == 'bookmarks' %}selected{% endif %}>Bookmarks</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select class="form-select" name="order">
+                    <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Ascending</option>
+                    <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>Descending</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">Sort</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Recipes Grid -->
+    <div class="row">
+        {% for recipe in recipes.items %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <a href="{{ url_for('recipe', recipe_id=recipe.id) }}">{{ recipe.name }}</a>
+                    </h5>
+                    <p class="card-text"><strong>Type:</strong> {{ recipe.type }}</p>
+                    <p class="card-text"><strong>Kitchen:</strong> {{ recipe.kitchen }}</p>
+                    <p class="card-text"><strong>Text:</strong> {{ recipe.recipe_text[:100] }}...</p>
+                    <p class="card-text"><strong>Portions:</strong> {{ recipe.portion_num }}</p>
+                    <p class="card-text"><strong>Time:</strong> {{ recipe.time }}</p>
+                    <p class="card-text"><strong>Likes:</strong> {{ recipe.likes }}</p>
+                    <p class="card-text"><strong>Dislikes:</strong> {{ recipe.dislikes }}</p>
+                    <p class="card-text"><strong>Bookmarks:</strong> {{ recipe.bookmarks }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    <nav aria-label="Recipe pagination">
+        <ul class="pagination justify-content-center">
+            {% if recipes.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('recipes', page=recipes.prev_num, sort_by=sort_by, order=sort_order) }}">Previous</a>
+            </li>
+            {% endif %}
+            {% for page_num in recipes.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+            {% if page_num == recipes.page %}
+            <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+            {% else %}
+            <li class="page-item"><a class="page-link" href="{{ url_for('recipes', page=page_num, sort_by=sort_by, order=sort_order) }}">{{ page_num }}</a></li>
+            {% endif %}
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+            {% endfor %}
+            {% if recipes.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('recipes', page=recipes.next_num, sort_by=sort_by, order=sort_order) }}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endblock %}
