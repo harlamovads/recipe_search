@@ -1,54 +1,15 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-from flask_sqlalchemy import SQLAlchemy
-from flask_bootstrap import Bootstrap
+from flask import render_template, request, redirect, url_for, session, flash, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
-
-app = Flask(__name__)
-bootstrap = Bootstrap(app)
-app.secret_key = 'your_secret_key'
-
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://app_user:app_password@db/recipes_db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
-
-class User(db.Model):
-    __tablename__ = 'users'
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
+from app import db
+from app.models import User, Recipe, Interaction
 
 
-class Recipe(db.Model):
-    __tablename__ = 'recipes'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), nullable=False)
-    type = db.Column(db.String(100))
-    kitchen = db.Column(db.String(100))
-    recipe_text = db.Column(db.Text)
-    ingredient_num = db.Column(db.Integer)
-    portion_num = db.Column(db.Integer)
-    time = db.Column(db.String(50))
-    likes = db.Column(db.Integer, default=0)
-    dislikes = db.Column(db.Integer, default=0)
-    bookmarks = db.Column(db.Integer, default=0)
-
-
-class Interaction(db.Model):
-    __tablename__ = 'interactions'
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    recipe_id = db.Column(db.Integer, db.ForeignKey('recipes.id'))
-    liked = db.Column(db.Boolean, default=False)
-    bookmarked = db.Column(db.Boolean, default=False)
-
-
-@app.route('/')
+@current_app.route('/')
 def home():
     return render_template('home.html', title="Welcome to Recipe Finder")
 
 
-@app.route('/register', methods=['GET', 'POST'])
+@current_app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form['username']
@@ -65,7 +26,7 @@ def register():
     return render_template('register.html', title="Register")
 
 
-@app.route('/login', methods=['GET', 'POST'])
+@current_app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
@@ -80,7 +41,7 @@ def login():
     return render_template('login.html', title="Login")
 
 
-@app.route('/search', methods=['GET', 'POST'])
+@current_app.route('/search', methods=['GET', 'POST'])
 def search():
     recipes = []
     if request.method == 'POST':
@@ -94,7 +55,7 @@ def search():
     return render_template('search.html', recipes=recipes, title="Search Recipes")
 
 
-@app.route('/recipe/<int:recipe_id>', methods=['GET', 'POST'])
+@current_app.route('/recipe/<int:recipe_id>', methods=['GET', 'POST'])
 def recipe(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
     if request.method == 'POST':
@@ -121,7 +82,7 @@ def recipe(recipe_id):
     return render_template('recipe.html', recipe=recipe, title=recipe.name)
 
 
-@app.route('/profile', methods=['GET', 'POST'])
+@current_app.route('/profile', methods=['GET', 'POST'])
 def profile():
     user_id = session.get('user_id')
     if not user_id:
@@ -148,7 +109,3 @@ def profile():
             flash('Account deleted successfully!', 'success')
             return redirect(url_for('home'))
     return render_template('profile.html', user=user, liked_recipes=liked_recipes, bookmarked_recipes=bookmarked_recipes, title="Your Profile")
-
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
