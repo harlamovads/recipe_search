@@ -4,65 +4,26 @@
     <h1>{{ recipe.name }}</h1>
     <p><strong>Type:</strong> {{ recipe.type }}</p>
     <p><strong>Kitchen:</strong> {{ recipe.kitchen }}</p>
-    <p><strong>Ingredients:</strong></p>
+    <p><strong>Ingredients: {{ recipe.ingredients }}</strong></p>
     <ul>
         {% for ingredient in recipe.ingredients %}
         <li>{{ ingredient }}</li>
         {% endfor %}
     </ul>
-    <p><strong>Steps:</strong></p>
+    <p><strong>Steps: {{ recipe.text }}</strong></p>
     <ol>
         {% for step in recipe.steps %}
         <li>{{ step }}</li>
         {% endfor %}
     </ol>
-    <form method="post" action="{{ url_for('like_recipe', recipe_id=recipe.id) }}">
+    <form method="post" action="{{ url_for('recipe', recipe_id=recipe.id) }}">
         <button type="submit" class="btn btn-success">Like</button>
     </form>
-    <form method="post" action="{{ url_for('dislike_recipe', recipe_id=recipe.id) }}">
+    <form method="post" action="{{ url_for('recipe', recipe_id=recipe.id) }}">
         <button type="submit" class="btn btn-danger">Dislike</button>
     </form>
-    <form method="post" action="{{ url_for('bookmark_recipe', recipe_id=recipe.id) }}">
+    <form method="post" action="{{ url_for('recipe', recipe_id=recipe.id) }}">
         <button type="submit" class="btn btn-warning">Bookmark</button>
-    </form>
-</div>
-{% endblock %}
-
-<!-- profile.html -->
-{% extends "base.html" %}
-{% block content %}
-<div class="container mt-4">
-    <h1>Profile</h1>
-    <p><strong>Username:</strong> {{ user.username }}</p>
-    <form method="post" action="{{ url_for('update_profile') }}">
-        <div class="mb-3">
-            <label for="new_username" class="form-label">New Username</label>
-            <input type="text" class="form-control" id="new_username" name="new_username">
-        </div>
-        <div class="mb-3">
-            <label for="new_password" class="form-label">New Password</label>
-            <input type="password" class="form-control" id="new_password" name="new_password">
-        </div>
-        <button type="submit" class="btn btn-primary">Update Profile</button>
-    </form>
-    <h2>Bookmarked Recipes</h2>
-    <ul class="list-group">
-        {% for recipe in user.bookmarks %}
-        <li class="list-group-item">
-            <a href="{{ url_for('recipe', recipe_id=recipe.id) }}">{{ recipe.name }}</a>
-        </li>
-        {% endfor %}
-    </ul>
-    <h2>Liked Recipes</h2>
-    <ul class="list-group">
-        {% for recipe in user.likes %}
-        <li class="list-group-item">
-            <a href="{{ url_for('recipe', recipe_id=recipe.id) }}">{{ recipe.name }}</a>
-        </li>
-        {% endfor %}
-    </ul>
-    <form method="post" action="{{ url_for('delete_account') }}">
-        <button type="submit" class="btn btn-danger">Delete Account</button>
     </form>
 </div>
 {% endblock %}

@@ -13,8 +13,8 @@ services:
     ports:
       - "3306:3306"
     volumes:
-    - db_data:/var/lib/mysql
-    - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./db:/docker-entrypoint-initdb.d
+    command: --local-infile=1 --secure-file-priv=/docker-entrypoint-initdb.d
 
   flask-app:
     build: .
