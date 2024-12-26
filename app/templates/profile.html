@@ -2,7 +2,7 @@
 {% block content %}
 <div class="container mt-4">
     <h1>Profile</h1>
-    <form method="post" action="{{ url_for('profile') }}">
+    <form method="post" action="{{ url_for('main.profile') }}">
         <div class="mb-3">
             <label for="new_username" class="form-label">New Username</label>
             <input type="text" class="form-control" id="new_username" name="new_username" placeholder="{{ user.username }}">
@@ -13,14 +13,14 @@
         </div>
         <button type="submit" name="update" class="btn btn-primary">Update Profile</button>
         <button type="submit" name="delete" class="btn btn-danger">Delete Account</button>
-        <a href="{{ url_for('logout') }}" class="btn btn-secondary">Log Out</a>
+        <a href="{{ url_for('main.logout') }}" class="btn btn-secondary">Log Out</a>
     </form>
     <hr>
     <h2>Bookmarked Recipes</h2>
     <ul class="list-group">
         {% for recipe in bookmarked_recipes %}
         <li class="list-group-item">
-            <a href="{{ url_for('recipe', recipe_id=recipe.id) }}">{{ recipe.name }}</a>
+            <a href="{{ url_for('main.recipe', recipe_id=recipe.id) }}">{{ recipe.name }}</a>
         </li>
         {% endfor %}
     </ul>
@@ -28,7 +28,7 @@
     <ul class="list-group">
         {% for recipe in liked_recipes %}
         <li class="list-group-item">
-            <a href="{{ url_for('recipe', recipe_id=recipe.id) }}">{{ recipe.name }}</a>
+            <a href="{{ url_for('main.recipe', recipe_id=recipe.id) }}">{{ recipe.name }}</a>
         </li>
         {% endfor %}
     </ul>

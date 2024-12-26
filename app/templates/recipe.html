@@ -10,19 +10,19 @@
     <p><strong>Dislikes:</strong> {{ recipe.dislikes }}</p>
     <p><strong>Bookmarks:</strong> {{ recipe.bookmarks }}</p>
 
-    <form method="post" action="{{ url_for('recipe', recipe_id=recipe.id) }}">
+    <form method="post" action="{{ url_for('main.recipe', recipe_id=recipe.id) }}">
         <button type="submit" name="action" value="like" 
                 class="btn {{ 'btn-success' if user_interaction and user_interaction.liked else 'btn-outline-success' }}">
             {{ 'Liked' if user_interaction and user_interaction.liked else 'Like' }}
         </button>
     </form>
-    <form method="post" action="{{ url_for('recipe', recipe_id=recipe.id) }}">
+    <form method="post" action="{{ url_for('main.recipe', recipe_id=recipe.id) }}">
         <button type="submit" name="action" value="dislike" 
                 class="btn {{ 'btn-danger' if user_interaction and user_interaction.liked == False else 'btn-outline-danger' }}">
             {{ 'Disliked' if user_interaction and user_interaction.liked == False else 'Dislike' }}
         </button>
     </form>
-    <form method="post" action="{{ url_for('recipe', recipe_id=recipe.id) }}">
+    <form method="post" action="{{ url_for('main.recipe', recipe_id=recipe.id) }}">
         <button type="submit" name="action" value="bookmark" 
                 class="btn {{ 'btn-warning' if user_interaction and user_interaction.bookmarked else 'btn-outline-warning' }}">
             {{ 'Bookmarked' if user_interaction and user_interaction.bookmarked else 'Bookmark' }}

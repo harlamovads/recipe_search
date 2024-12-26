@@ -5,3 +5,4 @@
 pycache/
 *.pyc
 *.pyo
+safe_app.py

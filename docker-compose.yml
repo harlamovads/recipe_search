@@ -1,5 +1,4 @@
 version: '3.9'
-
 services:
   db:
     image: mysql:8.0
@@ -14,7 +13,13 @@ services:
       - "3306:3306"
     volumes:
       - ./db:/docker-entrypoint-initdb.d
+      - db_data:/var/lib/mysql
     command: --local-infile=1 --secure-file-priv=/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   flask-app:
     build: .
@@ -24,10 +29,14 @@ services:
       - "5000:5000"
     environment:
       FLASK_ENV: development
+      FLASK_APP: app.py
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
       - .:/app
+      - ./app/templates:/app/app/templates
 
 volumes:
   db_data:
+    driver: local

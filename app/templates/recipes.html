@@ -5,7 +5,7 @@
     <h1>Recipe Database</h1>
 
     <!-- Sorting Options -->
-    <form method="get" action="{{ url_for('recipes') }}" class="mb-4">
+    <form method="get" action="{{ url_for('main.recipes') }}" class="mb-4">
         <div class="row g-2">
             <div class="col-md-4">
                 <select class="form-select" name="sort_by">
@@ -36,7 +36,7 @@
             <div class="card h-100">
                 <div class="card-body">
                     <h5 class="card-title">
-                        <a href="{{ url_for('recipe', recipe_id=recipe.id) }}">{{ recipe.name }}</a>
+                        <a href="{{ url_for('main.recipe', recipe_id=recipe.id) }}">{{ recipe.name }}</a>
                     </h5>
                     <p class="card-text"><strong>Type:</strong> {{ recipe.type }}</p>
                     <p class="card-text"><strong>Kitchen:</strong> {{ recipe.kitchen }}</p>
@@ -57,7 +57,7 @@
         <ul class="pagination justify-content-center">
             {% if recipes.has_prev %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('recipes', page=recipes.prev_num, sort_by=sort_by, order=sort_order) }}">Previous</a>
+                <a class="page-link" href="{{ url_for('main.recipes', page=recipes.prev_num, sort_by=sort_by, order=sort_order) }}">Previous</a>
             </li>
             {% endif %}
             {% for page_num in recipes.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
@@ -65,7 +65,7 @@
             {% if page_num == recipes.page %}
             <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
             {% else %}
-            <li class="page-item"><a class="page-link" href="{{ url_for('recipes', page=page_num, sort_by=sort_by, order=sort_order) }}">{{ page_num }}</a></li>
+            <li class="page-item"><a class="page-link" href="{{ url_for('main.recipes', page=page_num, sort_by=sort_by, order=sort_order) }}">{{ page_num }}</a></li>
             {% endif %}
             {% else %}
             <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -73,7 +73,7 @@
             {% endfor %}
             {% if recipes.has_next %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('recipes', page=recipes.next_num, sort_by=sort_by, order=sort_order) }}">Next</a>
+                <a class="page-link" href="{{ url_for('main.recipes', page=recipes.next_num, sort_by=sort_by, order=sort_order) }}">Next</a>
             </li>
             {% endif %}
         </ul>
