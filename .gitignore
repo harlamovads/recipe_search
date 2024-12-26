@@ -1,0 +1,7 @@
+# Ignore virtual environments
+/home/username/les_venves/my_venv/
+
+# Python cache files
+pycache/
+*.pyc
+*.pyo

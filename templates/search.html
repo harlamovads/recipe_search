@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h1>Search Recipes</h1>
+    <form method="get" action="{{ url_for('search') }}">
+        <div class="mb-3">
+            <label for="query" class="form-label">Search</label>
+            <input type="text" class="form-control" id="query" name="query" placeholder="Enter recipe name, ingredient, etc." required>
+        </div>
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+    {% if results %}
+    <ul class="list-group mt-4">
+        {% for result in results %}
+        <li class="list-group-item">
+            <a href="{{ url_for('recipe', recipe_id=result.id) }}">{{ result.name }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</div>
+{% endblock %}
