@@ -22,7 +22,9 @@ services:
       retries: 5
 
   flask-app:
-    build: .
+    build:
+      context: .
+      dockerfile: web/Dockerfile
     container_name: flask_app_1
     restart: always
     ports:
@@ -37,6 +39,30 @@ services:
       - .:/app
       - ./app/templates:/app/app/templates
 
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: recipe_api
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=mysql+pymysql://app_user:app_password@db/recipes_db
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - recipe-network
+
+networks:
+  recipe-network:
+    driver: bridge      
 volumes:
   db_data:
     driver: local
