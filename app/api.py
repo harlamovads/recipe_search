@@ -1,5 +1,9 @@
 import logging
 from fastapi import FastAPI, Query, HTTPException
+from starlette.middleware.base import BaseHTTPMiddleware
+from app import create_app
+from contextlib import contextmanager
+from sqlalchemy.orm import Session
 from .schemas import SearchMethod, CorpusInfo, SearchResponse, SearchResult
 from .models import Recipe as DBRecipe
 from .search_preprocessing import load_whoosh_index, load_embeddings
@@ -15,11 +19,33 @@ import uvicorn
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+flask_app = create_app()
+
 app = FastAPI(
     title="Recipe Search API",
     description="API for searching recipes using various methods",
     version="1.0.0"
 )
+
+
+class FlaskContextMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware that creates a Flask application context for each request.
+    This allows us to use Flask-SQLAlchemy models seamlessly within FastAPI.
+    """
+    def __init__(self, app, flask_app):
+        super().__init__(app)
+        self.flask_app = flask_app
+
+    async def dispatch(self, request, call_next):
+        # Create Flask context for the duration of the request
+        with self.flask_app.app_context():
+            response = await call_next(request)
+            return response
+        
+
+app.add_middleware(FlaskContextMiddleware, flask_app=flask_app)
+
 
 @app.on_event("startup")
 async def startup_event():
