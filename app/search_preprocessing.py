@@ -37,13 +37,44 @@ def ensure_preprocessed_data():
         print("Embeddings already exist. Skipping embeddings creation.")
 
 def create_whoosh_index():
-    """
-    Creates a Whoosh index from the recipes data with proper configuration for BM25 searching.
-    Includes detailed logging and validation to ensure proper index creation.
-    """
+    """Creates a Whoosh index from preprocessed recipe data."""
     print("Starting Whoosh index creation process...")
-    
-    # Define schema with proper field types and analysis
+   
+   # Import preprocessing tools
+    import nltk
+    from nltk.tokenize import word_tokenize
+    from nltk.corpus import stopwords 
+    from nltk.stem import WordNetLemmatizer
+    import string
+
+   # Download required NLTK data
+    try:
+        nltk.data.find('tokenizers/punkt')
+        nltk.data.find('corpora/stopwords')
+        nltk.data.find('corpora/wordnet')
+    except LookupError:
+        nltk.download('punkt')
+        nltk.download('stopwords')
+        nltk.download('wordnet')
+
+   # Initialize preprocessor
+    lemmatizer = WordNetLemmatizer()
+    stop_words = set(stopwords.words('english'))
+   
+    def preprocess_text(text):
+        if not text:
+            return ""
+        # Lowercase
+        text = text.lower()
+        # Remove punctuation
+        text = text.translate(str.maketrans("", "", string.punctuation))
+        # Tokenize
+        tokens = word_tokenize(text)
+        # Remove stopwords and lemmatize
+        tokens = [lemmatizer.lemmatize(token) for token in tokens if token not in stop_words]
+        # Rejoin text
+        return " ".join(tokens)
+
     schema = Schema(
         id=ID(stored=True, unique=True),
         name=TEXT(stored=True, field_boost=2.0),
@@ -51,68 +82,49 @@ def create_whoosh_index():
         text=TEXT(stored=True)
     )
 
-    # Ensure the index directory exists
     if not os.path.exists(WHOOSH_INDEX_DIR):
         os.makedirs(WHOOSH_INDEX_DIR)
-        print(f"Created index directory at {WHOOSH_INDEX_DIR}")
 
-    # Create the index
     ix = create_in(WHOOSH_INDEX_DIR, schema)
     writer = ix.writer()
 
     try:
-        # Fetch all recipes and log the count
         recipes = Recipe.query.all()
         total_recipes = len(recipes)
         print(f"Found {total_recipes} recipes to index")
 
         if total_recipes == 0:
-            print("Warning: No recipes found in the database!")
+            print("Warning: No recipes found in database!")
             return
 
-        # Add documents to the index with validation
         for i, recipe in enumerate(recipes, 1):
-            # Validate and clean the data before indexing
             recipe_data = {
                 'id': str(recipe.id),
-                'name': recipe.name if recipe.name else '',
-                'ingredients': recipe.ingredients if recipe.ingredients else '',
-                'text': recipe.text if recipe.text else ''
+                'name': preprocess_text(recipe.name),
+                'ingredients': preprocess_text(recipe.ingredients),
+                'text': preprocess_text(recipe.text)
             }
 
-            # Log some sample data for verification
-            if i <= 3:  # Show first 3 recipes for verification
+            if i <= 3:
                 print(f"\nIndexing recipe {i}/{total_recipes}:")
-                print(f"ID: {recipe_data['id']}")
-                print(f"Name: {recipe_data['name'][:50]}...")
-                print(f"Ingredients: {recipe_data['ingredients'][:50]}...")
-                print(f"Text: {recipe_data['text'][:50]}...")
-
-            # Add the document to the index
+                for key, value in recipe_data.items():
+                    print(f"{key}: {value[:50]}...")
+ 
             writer.add_document(**recipe_data)
-
-            # Log progress for every 1000 recipes
+ 
             if i % 1000 == 0:
                 print(f"Indexed {i}/{total_recipes} recipes...")
 
-        # Commit changes and verify
-        print("\nCommitting changes to index...")
         writer.commit()
-        
-        # Verify the index was created successfully
+       
         with ix.searcher() as searcher:
             doc_count = searcher.doc_count()
-            print(f"\nIndex creation completed:")
-            print(f"Total documents in index: {doc_count}")
-            if doc_count != total_recipes:
-                print("Warning: Number of indexed documents doesn't match recipe count!")
-            
-        print("Whoosh index created successfully")
+            print(f"\nIndex creation completed: {doc_count} documents indexed")
+           
         return ix
 
     except Exception as e:
         print(f"Error during index creation: {str(e)}")
-        # Attempt to clean up in case of error
         writer.cancel()
         raise
 
