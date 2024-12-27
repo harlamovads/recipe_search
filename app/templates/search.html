@@ -1,22 +1,54 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
 {% block content %}
-<div class="container mt-4">
-    <h1>Search Recipes</h1>
-    <form method="get" action="{{ url_for('main.search') }}">
-        <div class="mb-3">
-            <label for="query" class="form-label">Search</label>
-            <input type="text" class="form-control" id="query" name="query" placeholder="Enter recipe name, ingredient, etc." required>
+<div class="container mt-5">
+    <h2 class="text-center">Search Recipes</h2>
+    <form method="POST" action="{{ url_for('main.search') }}" class="mb-4">
+        <div class="form-group">
+            <input type="text" name="query" class="form-control" 
+                   placeholder="Enter your search query..." required>
         </div>
-        <button type="submit" class="btn btn-primary">Search</button>
+        
+        <div class="form-group mt-2">
+            <select name="search_type" class="form-control">
+                <option value="simple">Simple Text Search</option>
+                <option value="bm25">Advanced Keyword Search (BM25)</option>
+                <option value="embedding">Semantic Search (Embeddings)</option>
+            </select>
+        </div>
+        
+        <button type="submit" class="btn btn-primary mt-2">Search</button>
     </form>
-    {% if results %}
-    <ul class="list-group mt-4">
-        {% for result in results %}
-        <li class="list-group-item">
-            <a href="{{ url_for('main.recipe', recipe_id=result.id) }}">{{ result.name }}</a>
-        </li>
-        {% endfor %}
-    </ul>
+    
+    {% if search_result %}
+    <div class="alert alert-info">
+        <h5>Search Performance Metrics:</h5>
+        <p>Search Method: {{ search_result.search_type }}</p>
+        <p>Execution Time: {{ "%.2f"|format(search_result.execution_time) }} ms</p>
+        <p>Total Results: {{ search_result.total_results }}</p>
+        {% if search_result.details %}
+            <p>Details:</p>
+            <ul>
+                {% for key, value in search_result.details.items() %}
+                    <li>{{ key }}: {{ value }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
     {% endif %}
-</div>
+    {% if recipes %}
+        <h3>Search Results:</h3>
+        <div class="list-group">
+            {% for recipe in recipes %}
+                <a href="{{ url_for('main.recipe', recipe_id=recipe.id) }}" 
+                   class="list-group-item list-group-item-action">
+                    <h5 class="mb-1">{{ recipe.name }}</h5>
+                    <p class="mb-1">Type: {{ recipe.type }}</p>
+                    <small>Kitchen: {{ recipe.kitchen }}</small>
+                </a>
+            {% endfor %}
+        </div>
+    {% elif request.method == 'POST' %}
+        <p>No recipes found matching your search criteria.</p>
+    {% endif %}
 {% endblock %}

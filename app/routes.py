@@ -1,11 +1,105 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from typing import List, Dict
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import text
 from app.models import User, Recipe, Interaction
 from app import db
+from .search_preprocessing import load_whoosh_index, verify_whoosh_index, load_embeddings
+from whoosh.qparser import MultifieldParser, OrGroup
+from whoosh.scoring import BM25F
+import numpy as np
+import torch
+from sentence_transformers import SentenceTransformer, util
+import time
+from dataclasses import dataclass
+from typing import Any, Optional
+
+
+@dataclass
+class SearchResult:
+    """Class to store search results along with timing information."""
+    recipes: list
+    execution_time: float
+    total_results: int
+    search_type: str
+    details: Optional[dict] = None
+
+
+class Timer:
+    """Context manager for measuring execution time of code blocks."""
+    
+    def __init__(self, description: str = "Operation"):
+        self.description = description
+        self.start_time = None
+        self.end_time = None
+    
+    def __enter__(self):
+        self.start_time = time.time()
+        return self
+    
+    def __exit__(self, *args):
+        self.end_time = time.time()
+    
+    @property
+    def duration(self) -> float:
+        """Returns the duration in milliseconds."""
+        return (self.end_time - self.start_time) * 1000  # Convert to milliseconds
+
+
+verify_whoosh_index()
+whoosh_index = load_whoosh_index()
+recipe_ids, embeddings = load_embeddings()
+embeddings = torch.from_numpy(embeddings)
+embeddings = util.normalize_embeddings(embeddings)
 
 main_bp = Blueprint('main', __name__)
 
+
+def search_with_bm25(query_text: str, whoosh_index, limit: int = 10) -> List[int]:
+    """
+    Performs BM25 search using Whoosh index.
+    
+    Args:
+        query_text: The search query string
+        whoosh_index: The Whoosh index object
+        limit: Maximum number of results to return (default: 10)
+    
+    Returns:
+        List of recipe IDs matching the search criteria
+    """
+    # Clean and prepare the query
+    query_text = query_text.strip()
+    if not query_text:
+        return []
+
+    # Create a searcher with BM25F scoring
+    with whoosh_index.searcher(weighting=BM25F(B=0.75, K1=1.5)) as searcher:
+        # Create parser with OR group to match any of the terms
+        parser = MultifieldParser(
+            ["name", "ingredients", "text"], 
+            schema=whoosh_index.schema,
+            group=OrGroup.factory(0.9)  # Allow partial matches
+        )
+        
+        try:
+            # Parse the query
+            parsed_query = parser.parse(query_text)
+            
+            # Perform the search
+            results = searcher.search(parsed_query, limit=limit)
+            
+            # Get recipe IDs and scores
+            recipe_ids = [(int(hit['id']), hit.score) for hit in results]
+            
+            # Sort by score in descending order
+            recipe_ids.sort(key=lambda x: x[1], reverse=True)
+            
+            return [rid for rid, _ in recipe_ids]
+            
+        except Exception as e:
+            print(f"Search error: {str(e)}")
+            return []
+        
 
 @main_bp.route('/')
 def home():
@@ -42,20 +136,6 @@ def login():
             return redirect(url_for('main.home'))
         flash('Invalid username or password!', 'danger')
     return render_template('login.html', title="Login")
-
-
-@main_bp.route('/search', methods=['GET', 'POST'])
-def search():
-    recipes = []
-    if request.method == 'POST':
-        query = request.form['query']
-        recipes = Recipe.query.filter(
-            (Recipe.name.like(f"%{query}%")) |
-            (Recipe.type.like(f"%{query}%")) |
-            (Recipe.kitchen.like(f"%{query}%")) |
-            (Recipe.recipe_text.like(f"%{query}%"))
-        ).all()
-    return render_template('search.html', recipes=recipes, title="Search Recipes")
 
 
 @main_bp.route('/recipes')
@@ -226,3 +306,109 @@ def rank_users():
     result = db.session.execute(query).fetchall()
     users = [{"username": row.username, "total_interactions": row.total_interactions} for row in result]
     return render_template('rank.html', users=users, enumerate=enumerate)
+
+
+@main_bp.route('/search', methods=['GET', 'POST'])
+def search():
+    """
+    Comprehensive search function that supports multiple search methods:
+    - Simple text search (default)
+    - BM25-based search
+    - Embedding-based semantic search
+    """
+    recipes = []
+    search_type = request.form.get('search_type', 'simple')
+    query = request.form.get('query', '').strip()
+    search_result = None
+    search_performed = False
+    if request.method == 'POST' and query:
+        search_performed = True
+        try:
+            if search_type == 'simple':
+                # Simple database search
+                with Timer('Simple Search') as timer:
+                        recipes = Recipe.query.filter(
+                            (Recipe.name.like(f"%{query}%")) |
+                            (Recipe.type.like(f"%{query}%")) |
+                            (Recipe.kitchen.like(f"%{query}%")) |
+                            (Recipe.recipe_text.like(f"%{query}%"))
+                        ).all()
+
+                search_result = SearchResult(
+                    recipes=recipes,
+                    execution_time=timer.duration,
+                    total_results=len(recipes),
+                    search_type="Simple Database Search",
+                    details={"type": "SQL LIKE query"}
+                )
+
+            elif search_type == 'bm25':
+                # Use the improved BM25 search function
+                with Timer("BM25 Search") as timer:
+                    recipe_ids = search_with_bm25(query, whoosh_index)
+                    if recipe_ids:
+                    # Fetch recipes while maintaining search order
+                        id_to_pos = {id: pos for pos, id in enumerate(recipe_ids)}
+                        recipes = Recipe.query.filter(Recipe.id.in_(recipe_ids)).all()
+                        recipes.sort(key=lambda x: id_to_pos[x.id])
+                
+                search_result = SearchResult(
+                    recipes=recipes,
+                    execution_time=timer.duration,
+                    total_results=len(recipes),
+                    search_type="BM25 Search",
+                    details={"type": "Whoosh BM25F", "indexed_fields": ["name", "ingredients", "text"]}
+                )
+
+            elif search_type == 'embedding':
+                # Load embeddings and ids first
+                with Timer("Embedding Search") as timer:
+                    embedding_data = load_embeddings()  # This returns recipe_ids and embeddings
+                    recipe_ids, stored_embeddings = embedding_data
+                    model = SentenceTransformer('all-MiniLM-L6-v2')
+                    query_embedding = model.encode(query, convert_to_tensor=True)
+                    query_embedding = util.normalize_embeddings(query_embedding.unsqueeze(0))    
+                    similarities = util.pytorch_cos_sim(query_embedding, stored_embeddings)[0]
+                    top_k = 10
+                    top_indices = torch.topk(similarities, min(top_k, len(similarities)))[1]
+        
+                    top_recipe_ids = [recipe_ids[idx] for idx in top_indices.tolist()]
+                    if top_recipe_ids:
+                        recipes = Recipe.query.filter(Recipe.id.in_(top_recipe_ids)).all()
+                        recipes.sort(key=lambda x: top_recipe_ids.index(x.id))
+
+                search_result = SearchResult(
+                    recipes=recipes,
+                    execution_time=timer.duration,
+                    total_results=len(recipes),
+                    search_type="Semantic Search",
+                    details={
+                        "type": "Sentence Transformers",
+                        "model": "all-MiniLM-L6-v2",
+                        "similarity": "Cosine"
+                    }
+                )
+            
+            if not recipes:
+                flash('No recipes found matching your search criteria.', 'info')
+
+
+        except Exception as e:
+            flash(f'An error occurred during search: {str(e)}', 'danger')
+            recipes = []
+            search_result = SearchResult(
+                recipes=[],
+                execution_time=0,
+                total_results=0,
+                search_type=search_type,
+                details={"error": str(e)}
+            )
+
+    return render_template(
+        'search.html',
+        recipes=recipes,
+        search_result=search_result,
+        search_type=search_type,
+        query=query,
+        title="Search Recipes"
+    )

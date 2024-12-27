@@ -1,10 +1,7 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_bootstrap import Bootstrap
+from .extensions import db, bootstrap
 from app.config import Config
-
-db = SQLAlchemy()
-bootstrap = Bootstrap()
+from .search_preprocessing import ensure_preprocessed_data
 
 def create_app(config_class=Config):
     """Create and configure the Flask application.
@@ -22,8 +19,10 @@ def create_app(config_class=Config):
     db.init_app(app)
     bootstrap.init_app(app)
 
-    # Register blueprints
-    from app.routes import main_bp
-    app.register_blueprint(main_bp)
+    with app.app_context():
+        from .search_preprocessing import ensure_preprocessed_data
+        ensure_preprocessed_data()
+        from .routes import main_bp
+        app.register_blueprint(main_bp)
 
     return app
